@@ -1,0 +1,82 @@
+<html>
+    <head>
+        <meta charset="utf-8"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="style.css">
+
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;500&family=Share+Tech+Mono&display=swap" rel="stylesheet"> 
+        <script type="module" src="./main.js"></script>
+        <script src="./aes.js"></script>
+        <title>Star Wars Clip Quiz</title>
+    </head>
+    <body>
+        <canvas id="canvas" style="width: 100%; height: 100%; padding: 0;margin: 0;"></canvas>
+        <div id="main" >
+            <h1>Think you know Star Wars?</h1>
+
+            <h2>Think you have every second of every film memorized?</h2>
+            <h3>Put that knowledge to the test!</h3>
+            <p>See if you can identify the movie based off of a random sound clip</p>
+
+            <div id="difficulty-button-bar">
+                <button class="difficulty-button" id="easy-button">Easy (10s)</button>
+                <button class="difficulty-button" id="medium-button">Medium (5s)</button>
+                <button class="difficulty-button" id="hard-button">Hard (2s)</button>
+                <button class="difficulty-button" id="legend-button">Legend (1s)</button>
+            </div>
+
+            <div id="footer">Jayden Milne ⁠— <a href="https://github.com/jaydenmilne/starwars-clipquiz">Source</a> ⁠— <a href="./about.html">About</a> ⁠— <a href="https://yodaspin.com">YODASPIN!!1</a></div>
+        </div>
+
+        <div id="quiz">
+            <h1 id="progress">1/10</h1>
+            <button id="play-button">▶&#xFE0E;</button>
+            <span id=volume-div>🔊 <input type="range" id="volume-slider" min="0" value="0.7" max="1" step="0.01"></span>
+            <h3>Prequels</h3>
+
+            <button class="movie-btn" id="phantom-menace">Episode I – The Phantom Menace</button>
+            <button class="movie-btn" id="attack-clones">Episode II – Attack of the Clones</button>
+            <button class="movie-btn" id="revenge-sith">Episode III – Revenge of the Sith</button>
+            
+            <h3>Originals</h3>
+            <button class="movie-btn" id="new-hope">Episode IV – A New Hope</button>
+            <button class="movie-btn" id="empire">Episode V – The Empire Strikes Back</button>
+            <button class="movie-btn" id="rotj">Episode VI – Return of the Jedi</button>
+
+            <!--
+            lol who cares
+            <h3>Sequels</h3>
+            <button class="movie-btn" id="force-awakens">Episode VII – The Force Awakens</button>
+            <button class="movie-btn" id="last-jedi">Episode VIII – The Last Jedi</button>
+            <button class="movie-btn" id="commercial-diarrhea">Episode IX – The Rise of Skywalker</button> 
+            -->
+        </div>
+
+        <div id="results">
+            <h1 id="results-heading">Results</h1>
+            <span>Duration: <span id="time-div">00:00:00:00</span></span>
+            <ol id="results-list">
+                <li> <button class="mini-play">▶&#xFE0E;</button>✅ Episode IV</li>
+                <li>✅ Episode IV</li>
+                <li>❌ Episode IV (you put Episode III)</li>
+                <li>✅ Episode IV</li>
+                <li>✅ Episode IV</li>
+
+                <li>✅ Episode IV</li>
+                <li>✅ Episode IV</li>
+                <li>✅ Episode IV</li>
+                <li>✅ Episode IV</li>
+                <li>✅ Episode IV</li>
+            </ol>
+
+
+            <button class="results-btn" id="again">Play Again</button>
+            <button class="results-btn" id="change-difficulty">Change Difficulty</button>
+
+        </div>
+
+        <script src="stars.js"></script>
+    </body>
+</html>

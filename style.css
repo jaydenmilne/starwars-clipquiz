@@ -1,0 +1,206 @@
+body {
+    background-color: black;
+    font-family: 'Libre Franklin', sans-serif;
+    color: #0BF2FB;
+    padding: 15px;
+    max-width: 500px;
+    margin: auto;
+}
+
+#main {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+#canvas {
+    z-index: -1000;
+    position: fixed;
+    top:0px;
+    left:0px;
+    opacity: 0.3;
+}
+
+#difficulty-button-bar {
+    display: flex;
+    justify-content: center;
+}
+
+.difficulty-button {
+    border-color: #FFCF09;
+    border-style: solid;
+    background-color: black;
+    font-family: 'Libre Franklin', sans-serif;
+    color: #0BF2FB;
+    height:50px;
+    font-size: 16px;
+    margin-right: 0px; /* fix for safari */
+    padding-right: 5px;
+    margin-left: 0px;
+    padding-left: 5px;
+}
+
+.difficulty-button:active{
+    background-color: #FFCF09;
+    color: black;
+
+}
+
+.difficulty-button:hover {
+    background-color: #FFCF09;
+    color: black;
+}
+
+#easy-button {
+    border-top-left-radius: 10px;
+    border-bottom-left-radius: 10px;
+    border-right: none;
+}
+
+#medium-button {
+    border-right: none;
+}
+
+#hard-button {
+    border-right: none;
+}
+
+#legend-button {
+    border-top-right-radius: 10px;
+    border-bottom-right-radius: 10px;
+}
+
+#footer {
+    margin-top: auto;
+}
+
+#quiz {
+    display: none;
+    flex-direction: column;
+}
+
+#results {
+    display: none;
+    flex-direction: column;
+}
+
+#play-button {
+    height: 100px;
+    width: 100px;
+    background-color: black;
+    font-family: 'Libre Franklin', sans-serif;
+    color: #FFCF09;
+    font-size: 72px;
+    border-color: #FFCF09;
+    border-style: solid;
+    border-radius: 15px;
+    align-self: center;
+    text-align: center;
+    padding-left: 8px;
+    padding-right: 8px;
+    padding-top: 0px;
+}
+
+#play-button:active{
+    background-color: #FFCF09;
+    color: black;
+}
+
+#play-button:hover {
+    background-color: #FFCF09;
+    color: black;
+}
+
+#progress {
+    text-align: center;
+}
+
+.movie-btn {
+    border-color: #FFCF09;
+    border-style: solid;
+    background-color: black;
+    font-family: 'Libre Franklin', sans-serif;
+    color: #0BF2FB;
+    height:40px;
+    font-size: 16px;
+    text-align: left;
+    margin-bottom: 5px;
+    border-radius: 5px;
+}
+
+.movie-btn:active{
+    background-color: #FFCF09;
+    color: black;
+}
+
+.movie-btn:hover {
+    background-color: #FFCF09;
+    color: black;
+}
+
+#volume-div {
+    width:100%;
+    display: flex;
+}
+
+#volume-slider {
+    flex-grow: 1;
+}
+
+#progress {
+    margin-top: 0;
+}
+
+.results-btn {
+    border-color: #FFCF09;
+    border-style: solid;
+    background-color: black;
+    font-family: 'Libre Franklin', sans-serif;
+    color: #0BF2FB;
+    height:60px;
+    font-size: 20px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+}
+
+.results-btn:active{
+    background-color: #FFCF09;
+    color: black;
+
+}
+
+.results-btn:hover {
+    background-color: #FFCF09;
+    color: black;
+}
+
+#time-div {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 24px;
+}
+
+.mini-play {
+    border-color: #FFCF09;
+    border-style: solid;
+    background-color: black;
+    font-family: 'Libre Franklin', sans-serif;
+    color: #0BF2FB;
+    font-size: 20px;
+    border-radius: 5px;
+    margin-right: 10px;
+
+    height: 50px;
+    width: 50px;
+    margin-bottom: 20px;
+}
+
+.mini-play:active{
+    background-color: #FFCF09;
+    color: black;
+
+}
+
+.mini-play:hover {
+    background-color: #FFCF09;
+    color: black;
+}
