@@ -111,6 +111,11 @@ body {
     color: black;
 }
 
+#play-button:visited {
+    background-color: black;
+    color: #FFCF09;
+}
+
 #progress {
     text-align: center;
 }
@@ -136,6 +141,11 @@ body {
 .movie-btn:hover {
     background-color: #FFCF09;
     color: black;
+}
+
+.movie-btn:hover {
+    background-color: black;
+    color: #FFCF09;
 }
 
 #volume-div {
@@ -174,6 +184,11 @@ body {
     color: black;
 }
 
+#results-btn:hover {
+    background-color: black;
+    color: #FFCF09;
+}
+
 #time-div {
     font-family: 'Share Tech Mono', monospace;
     font-size: 24px;
@@ -203,4 +218,72 @@ body {
 .mini-play:hover {
     background-color: #FFCF09;
     color: black;
+}
+
+#mini-play:hover {
+    background-color: black;
+    color: #FFCF09;
+}
+
+/* Loading Spinner */
+
+.spinner {
+	animation: rotator 1.4s linear infinite;
+    align-self: center;
+    display: none;
+}
+
+@keyframes rotator {
+	0% {
+		transform: rotate(0deg);
+	}
+
+	100% {
+		transform: rotate(270deg);
+	}
+}
+
+.path {
+	stroke-dasharray: 187;
+	stroke-dashoffset: 0;
+	transform-origin: center;
+	animation: dash 1.4s ease-in-out infinite, colors 5.6s ease-in-out infinite;
+}
+
+@keyframes colors {
+	0% {
+		stroke: #FFCF09;
+	}
+
+	25% {
+		stroke: #FFCF09;
+	}
+
+	50% {
+		stroke: #0BF2FB;
+	}
+
+	75% {
+		stroke: #0BF2FB;
+	}
+
+	100% {
+		stroke: #FFCF09;
+	}
+}
+
+@keyframes dash {
+	0% {
+		stroke-dashoffset: 187;
+	}
+
+	50% {
+		stroke-dashoffset: 46.75;
+		transform: rotate(135deg);
+	}
+
+	100% {
+		stroke-dashoffset: 187;
+		transform: rotate(450deg);
+	}
 }

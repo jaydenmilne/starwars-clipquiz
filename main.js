@@ -10,6 +10,8 @@ let EASY_BUTTON;
 let MEDIUM_BUTTON;
 let HARD_BUTTON; 
 let LEGEND_BUTTON;
+let BUTTON_BAR;
+let LOADING_SPINNER;
 
 // quiz
 let PROGRESS;
@@ -63,6 +65,8 @@ function router(newState) {
 
     switch (newState) {
         case MAIN:
+            BUTTON_BAR.style.display = "inherit";
+            LOADING_SPINNER.style.display = "none";
             MAIN_PAGE.style.display = "flex";
             break;
         case QUIZ:
@@ -96,6 +100,12 @@ function setVolume() {
 }
 
 async function beginQuiz(difficultyBtnName) {
+
+    // hide the buttons, display loading
+    BUTTON_BAR.style.display = "none";
+    LOADING_SPINNER.style.display = "inherit";
+
+    router(QUIZ);
     const difficulty = difficultyBtnName.split('-')[0];
 
     console.log("starting quiz at difficulty", difficulty);
@@ -121,7 +131,6 @@ async function beginQuiz(difficultyBtnName) {
 
     toAskAudio[0].play();
 
-    router(QUIZ);
     
 }
 
@@ -203,6 +212,8 @@ function main() {
     MEDIUM_BUTTON = document.getElementById("medium-button");
     HARD_BUTTON = document.getElementById("hard-button");
     LEGEND_BUTTON = document.getElementById("legend-button");
+    BUTTON_BAR = document.getElementById("difficulty-button-bar");
+    LOADING_SPINNER = document.getElementById("loading-spinner");
 
     MAIN_PAGE = document.getElementById("main");
     QUIZ_PAGE = document.getElementById("quiz");
