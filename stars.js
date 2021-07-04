@@ -31,7 +31,7 @@ const makeStars = count => {
     return out;
 };
 
-let stars = makeStars(10000);
+let stars = makeStars(5000);
 
 const clear = () => {
     c.fillStyle = "black";
