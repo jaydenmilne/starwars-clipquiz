@@ -105,7 +105,6 @@ async function beginQuiz(difficultyBtnName) {
     BUTTON_BAR.style.display = "none";
     LOADING_SPINNER.style.display = "inherit";
 
-    router(QUIZ);
     const difficulty = difficultyBtnName.split('-')[0];
 
     console.log("starting quiz at difficulty", difficulty);
@@ -130,6 +129,7 @@ async function beginQuiz(difficultyBtnName) {
     })
 
     toAskAudio[0].play();
+    router(QUIZ);
 
     
 }
