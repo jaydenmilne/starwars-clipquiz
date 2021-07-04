@@ -96,10 +96,9 @@ function setVolume() {
 }
 
 async function beginQuiz(difficultyBtnName) {
-    console.log("beginQuiz!!!!");
     const difficulty = difficultyBtnName.split('-')[0];
 
-    console.log(difficulty);
+    console.log("starting quiz at difficulty", difficulty);
     selections = new Array(NUM_QUESTIONS);
     currentIndex = 0;
     updateProgress();
@@ -110,17 +109,18 @@ async function beginQuiz(difficultyBtnName) {
     let clips = await getManifest(difficulty);
 
     toAsk = getRandom(clips, NUM_QUESTIONS);
-    console.log("here");
     toAskAudio = await Promise.all(toAsk.map(async (clip) => {
         const url = await getClipUrl(clip.file);
         return new Audio(url);
     }));
-    console.log("here1");
 
     // play the first one as soon as it is ready
     toAskAudio[0].addEventListener('loadeddata', () => {
         toAskAudio[0].play();
     })
+
+    toAskAudio[0].play();
+
     router(QUIZ);
     
 }
@@ -239,8 +239,6 @@ function main() {
 
     PLAY_BUTTON.addEventListener('click', () => {
      try {
-        console.log("playing!");
-        console.log(toAskAudio[currentIndex]);
         toAskAudio[currentIndex].play();
      } catch (error) {
          console.error(error.stack);

@@ -43,9 +43,15 @@ export async function getManifest(difficulty) {
     return all;
 }
 
-export async function getClipUrl(url) {
-    console.log("url!");
-    const response = await fetch(`https://yodaspincdn.jayd.ml/file/yodaspincdn/clips/${url}.enc`);
+export async function getClipUrl(filename) {
+    let url;
+    if (location.hostname.includes("localhost")) {
+        url = `http://localhost:8001/clips/${filename}.enc`;
+    } else {
+        url = `https://yodaspincdn.jayd.ml/file/yodaspincdn/clips/${filename}.enc`;
+    }
+
+    const response = await fetch(url);
 
     const arrayBuf = await response.arrayBuffer();
 
@@ -56,6 +62,5 @@ export async function getClipUrl(url) {
     const decryptedBlob = new Blob([decrypted], {type: "audio/mpeg"});
 
     const newUrl = window.URL.createObjectURL(decryptedBlob);
-    console.log(newUrl);
     return newUrl;
 }
