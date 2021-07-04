@@ -45,7 +45,7 @@ export async function getManifest(difficulty) {
 
 export async function getClipUrl(url) {
     console.log("url!");
-    const response = await fetch(`https://yodaspincdn.jayd.ml/yodaspincdn/clips/${url}.enc`);
+    const response = await fetch(`https://yodaspincdn.jayd.ml/file/yodaspincdn/clips/${url}.enc`);
 
     const arrayBuf = await response.arrayBuffer();
 
