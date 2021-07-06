@@ -1,2 +1,6 @@
 clips/*
 clips
+backend/backend.exe
+backend/highscores.db
+backend/__debug_bin
+backend/.vscode/launch.json
