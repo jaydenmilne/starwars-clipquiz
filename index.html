@@ -29,25 +29,33 @@
 
             <h2>Think you have every second of every film memorized?</h2>
             <h3>Put that knowledge to the test!</h3>
-            <p>See if you can identify the movie based off of a random sound clip.</p>
-            <p>It's different every time, and every second of every movie is fair game!</p>
 
-            <div id="difficulty-button-bar">
-                <button class="difficulty-button" id="easy-button">Easy (10s)</button>
-                <button class="difficulty-button" id="medium-button">Medium (5s)</button>
-                <button class="difficulty-button" id="hard-button">Hard (2s)</button>
-                <button class="difficulty-button" id="legend-button">Legend (1s)</button>
+            <div id="start-div">
+                <div class="difficulty-button-bar">
+                    <button class="difficulty-button easy-button" id="easy-button">Easy (10s)</button>
+                    <button class="difficulty-button medium-button" id="medium-button">Medium (5s)</button>
+                    <button class="difficulty-button hard-button" id="hard-button">Hard (2s)</button>
+                    <button class="difficulty-button legend-button" id="legend-button">Legend (1s)</button>
+                </div>
+
             </div>
 
             <svg id="loading-spinner" class="spinner" width="65px" height="65px" viewBox="0 0 66 66" xmlns="http://www.w3.org/2000/svg">
                 <circle class="path" fill="none" stroke-width="6" stroke-linecap="round" cx="33" cy="33" r="30"></circle>
             </svg>
 
+            <p>See if you can identify the movie based off of a random sound clip.</p>
+            <p>It's different every time, and every second of every movie is fair game!</p>
+            <p>See how many you can get right in a row!</p>
+
+
+            <button class="results-btn" id="main-view-leaderboard">View Leaderboard</button>
+
             <div id="footer">Jayden Milne ⁠— <a href="https://github.com/jaydenmilne/starwars-clipquiz">Source</a> ⁠— <a href="./about.html">About</a> ⁠— <a href="https://yodaspin.com">YODASPIN!!1</a></div>
         </div>
 
         <div id="quiz">
-            <h1 id="progress">1/10</h1>
+            <h1 id="progress">Score: 0</h1>
             <button id="play-button">▶&#xFE0E;</button>
             <span id=volume-div>🔊 <input type="range" id="volume-slider" min="0" value="0.7" max="1" step="0.01"></span>
             <h3>Prequels</h3>
@@ -71,28 +79,52 @@
         </div>
 
         <div id="results">
-            <h1 id="results-heading">Results</h1>
+            <h1 id="results-heading">WRONG!</h1>
+            <h2 id="results-score-heading">You got 43 correct</h2>
+            <h3 id="results-correct">Episode IV was the correct choice!</h3>
             <span>Duration: <span id="time-div">00:00:00:00</span></span>
-            <ol id="results-list">
-                <li> <button class="mini-play">▶&#xFE0E;</button>✅ Episode IV</li>
-                <li>✅ Episode IV</li>
-                <li>❌ Episode IV (you put Episode III)</li>
-                <li>✅ Episode IV</li>
-                <li>✅ Episode IV</li>
 
-                <li>✅ Episode IV</li>
-                <li>✅ Episode IV</li>
-                <li>✅ Episode IV</li>
-                <li>✅ Episode IV</li>
-                <li>✅ Episode IV</li>
-            </ol>
+            <div id="submit-leaderboard">
+                <h4>Submit to Leaderboard</h2>
+                <div id="username-div">
+                    <input type="text" id="results-name">
+                    <button class="results-btn" id="submit-username-btn">Submit</button>
+                </div>
+            </div>
 
+            <span id="results-check-span">✅</span>
 
+            <hr class="results-hr">
             <button class="results-btn" id="again">Play Again</button>
+            <button class="results-btn" id="results-view-leaderboard">View Leaderboard</button>
             <button class="results-btn" id="change-difficulty">Change Difficulty</button>
 
         </div>
 
+        <div id="leaderboard">
+            <h1>Leaderboard</h1>
+            <div class="difficulty-button-bar">
+                <button class="difficulty-button easy-button" id="easy-button-leaderboard">Easy (10s)</button>
+                <button class="difficulty-button medium-button" id="medium-button-leaderboard">Medium (5s)</button>
+                <button class="difficulty-button hard-button" id="hard-button-leaderboard">Hard (2s)</button>
+                <button class="difficulty-button legend-button" id="legend-button-leaderboard">Legend (1s)</button>
+            </div>
+            <div id="wrapper">
+                <h4 id="leaderboard-difficulty"></h4>
+                <h3>All Time</h3>
+                <ol id="leaderboard-all-time">
+                </ol>
+                <h3>This Week</h3>
+                <ol id="leaderboard-this-week">
+                </ol>
+                <h3>Today</h3>
+                <ol id="leaderboard-today">
+                </ol>
+            </div>
+
+            <button class="results-btn" id="leaderboard-back">Back</button>
+
+        </div>
         <script src="stars.js"></script>
     </body>
 </html>

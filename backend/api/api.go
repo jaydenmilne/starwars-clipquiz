@@ -1,35 +1,108 @@
-package main
+package api
 
 import (
 	"backend/cryptopasta"
+	"backend/storage"
+	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log"
+	"math/big"
 	pseudoRand "math/rand"
 	"net/http"
 	"path/filepath"
-	"strings"
+	"time"
 
+	"backend/types"
+
+	"github.com/bits-and-blooms/bloom/v3"
 	"github.com/golang-jwt/jwt"
 	"github.com/google/uuid"
+	"github.com/gorilla/mux"
 )
 
 type TokenClaims struct {
 	Id           string
 	CurrentScore int
 	Correct      string // encrypted correct answer
-	Difficulty   Difficulty
+	Difficulty   types.Difficulty
 	Jti          string
+	Iat          int64
 }
 
-func parseFromJwt(authToken string) (TokenClaims, error) {
+type QuizAPI struct {
+	burnedIds          *bloom.BloomFilter
+	burnedHighscoreIds *bloom.BloomFilter
+	burnedJtis         *bloom.BloomFilter
+
+	signatureKey  []byte
+	encryptionKey [32]byte
+
+	dataStore storage.Store
+	manifests map[types.Difficulty]types.RandomManifest
+
+	clipDir string
+
+	mux *mux.Router
+}
+
+func NewQuizApi(manifests map[types.Difficulty]types.RandomManifest, dbPath, clipDir string) *QuizAPI {
+	api := QuizAPI{}
+
+	api.burnedIds = bloom.NewWithEstimates(10_000_000, 0.000001)
+	api.burnedHighscoreIds = bloom.NewWithEstimates(10_000_000, 0.000001)
+	api.burnedJtis = bloom.NewWithEstimates(10_000_000, 0.000001)
+
+	nBig, err := rand.Int(rand.Reader, big.NewInt(27))
+
+	if err != nil {
+		panic(err)
+	}
+	pseudoRand.Seed(nBig.Int64())
+
+	temp := make([]byte, 32)
+
+	api.signatureKey = make([]byte, types.SIGNATURE_LENGTH)
+
+	rand.Read(api.signatureKey)
+	rand.Read(temp)
+	copy(api.encryptionKey[:], temp)
+
+	log.Printf("Signature Key: %s", base64.RawStdEncoding.EncodeToString(api.signatureKey))
+	log.Printf("Encryption Key: %s", base64.RawStdEncoding.EncodeToString(api.encryptionKey[:]))
+
+	api.clipDir = clipDir
+
+	api.manifests = manifests
+	api.dataStore.Init(dbPath)
+
+	api.mux = mux.NewRouter()
+
+	api.mux.HandleFunc("/clipquiz/v1/clip", func(w http.ResponseWriter, req *http.Request) {
+		api.GetClipEndpoint(w, req)
+	}).Methods(http.MethodPost)
+	api.mux.HandleFunc("/clipquiz/v1/highscore", func(w http.ResponseWriter, req *http.Request) {
+		api.RegisterHighscoreEndpoint(w, req)
+	}).Methods(http.MethodPost)
+	api.mux.HandleFunc("/clipquiz/v1/highscore", func(w http.ResponseWriter, req *http.Request) {
+		api.GetHighScoresEndpoint(w, req)
+	}).Methods(http.MethodGet)
+
+	return &api
+}
+
+func (q *QuizAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	q.mux.ServeHTTP(w, req)
+}
+
+func (q *QuizAPI) parseFromJwt(authToken string) (TokenClaims, error) {
 	token, err := jwt.Parse(authToken, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("wrong algorithm: %v", token.Header["alg"])
 		}
 
-		return signatureKey, nil
+		return q.signatureKey, nil
 	})
 
 	if err != nil {
@@ -65,7 +138,7 @@ func parseFromJwt(authToken string) (TokenClaims, error) {
 			return TokenClaims{}, fmt.Errorf("difficulty not a string?")
 		}
 
-		parsed.Difficulty = Difficulty(diffString)
+		parsed.Difficulty = types.Difficulty(diffString)
 
 		// parsed.Correct is a base64 encoded encrypted UTF-8 string
 		encBytes, err := base64.StdEncoding.DecodeString(parsed.Correct)
@@ -73,23 +146,35 @@ func parseFromJwt(authToken string) (TokenClaims, error) {
 			return TokenClaims{}, fmt.Errorf("failed to decode correct: base64 decoding error %s", err)
 		}
 
-		previousCorrectBytes, err := cryptopasta.Decrypt(encBytes, &encryptionKey)
+		previousCorrectBytes, err := cryptopasta.Decrypt(encBytes, &q.encryptionKey)
 		if err != nil {
 			return TokenClaims{}, fmt.Errorf("failed to decrypt correct: %s", err)
 		}
 
 		parsed.Correct = string(previousCorrectBytes)
 
+		var iatFloat float64
+		if iatFloat, ok = claims["iat"].(float64); !ok {
+			return TokenClaims{}, fmt.Errorf("iat not a float?")
+		}
+
+		parsed.Iat = int64(iatFloat)
+
+		iat := time.Unix(int64(parsed.Iat), 0)
+
+		if time.Since(iat) > time.Minute*15 {
+			return TokenClaims{}, fmt.Errorf("token expired")
+		}
 		return parsed, nil
 	}
 
 	return TokenClaims{}, fmt.Errorf("claims parsing error")
 }
 
-func mintToken(claims TokenClaims) (string, error) {
+func (q *QuizAPI) mintToken(claims TokenClaims) (string, error) {
 	// encrypt correct
 	var err error
-	encryptedCorrect, err := cryptopasta.Encrypt([]byte(claims.Correct), &encryptionKey)
+	encryptedCorrect, err := cryptopasta.Encrypt([]byte(claims.Correct), &q.encryptionKey)
 
 	if err != nil {
 		return "", fmt.Errorf("failed to encrypt correct: %s", err)
@@ -106,9 +191,10 @@ func mintToken(claims TokenClaims) (string, error) {
 		"currentScore": claims.CurrentScore,
 		"difficulty":   claims.Difficulty,
 		"jti":          jti,
+		"iat":          time.Now().Unix(),
 	})
 
-	tokenStr, err := token.SignedString(signatureKey)
+	tokenStr, err := token.SignedString(q.signatureKey)
 
 	if err != nil {
 		return "", fmt.Errorf("failed to sign token: %s", err)
@@ -117,17 +203,17 @@ func mintToken(claims TokenClaims) (string, error) {
 	return tokenStr, nil
 }
 
-func randomClip(diff Difficulty) (string, Episode) {
-	manifest := Manifests[diff]
-	randomIndex := pseudoRand.Intn(len(manifest.keys))
-	clipName := manifest.keys[randomIndex]
-	correctEpisode := manifest.lookup[clipName]
+func (q *QuizAPI) randomClip(diff types.Difficulty) (string, types.Episode) {
+	manifest := q.manifests[diff]
+	randomIndex := pseudoRand.Intn(len(manifest.Keys))
+	clipName := manifest.Keys[randomIndex]
+	correctEpisode := manifest.Lookup[clipName]
 
 	return clipName, correctEpisode
 }
 
-func getClip(w http.ResponseWriter, req *http.Request) {
-	auth := req.Header.Get("Authorization")
+func (q *QuizAPI) GetClipEndpoint(w http.ResponseWriter, req *http.Request) {
+	auth := req.Header.Get("Auth-Token")
 
 	var claims TokenClaims
 	var err error
@@ -138,25 +224,16 @@ func getClip(w http.ResponseWriter, req *http.Request) {
 
 		diff := req.URL.Query().Get("difficulty")
 
-		if diff == "" || (diff != string(Easy) && diff != string(Medium) && diff != string(Hard) && diff != string(Legend)) {
+		if diff == "" || (diff != string(types.Easy) && diff != string(types.Medium) && diff != string(types.Hard) && diff != string(types.Legend)) {
 			log.Printf("bad params on new request")
 			http.Error(w, "failed to parse url", http.StatusBadRequest)
 			return
 		}
 
-		claims.Difficulty = Difficulty(diff)
+		claims.Difficulty = types.Difficulty(diff)
 
 	} else {
-		tokenSplit := strings.Split(auth, "Bearer ")
-
-		if len(tokenSplit) != 2 {
-			log.Printf("invalid bearer token: no data? %v", tokenSplit)
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
-			return
-		}
-
-		auth = tokenSplit[1]
-		claims, err = parseFromJwt(auth)
+		claims, err = q.parseFromJwt(auth)
 
 		if err != nil {
 			log.Printf("Token Parse Error: %s", err)
@@ -164,22 +241,25 @@ func getClip(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 
-		if burnedIds.Contains(claims.Id) {
+		if q.burnedIds.TestString(claims.Id) {
+			log.Printf("id has been burned")
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
 
-		if burnedJtis.Contains(claims.Jti) {
+		if q.burnedJtis.TestString(claims.Jti) {
+			log.Printf("jti has been burned")
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
 
-		burnedJtis.Insert(claims.Jti)
+		q.burnedJtis.AddString(claims.Jti)
 
 		// parse out their guess
 		guess := req.URL.Query().Get("guess")
 
 		if guess == "" {
+			log.Printf("no guess")
 			http.Error(w, "No guess", http.StatusBadRequest)
 			return
 		}
@@ -187,9 +267,9 @@ func getClip(w http.ResponseWriter, req *http.Request) {
 		if guess != claims.Correct {
 			// that's all folks!
 			// burn their id
-			burnedIds.Insert(claims.Id)
+			q.burnedIds.AddString(claims.Id)
 			// remind them of their auth token
-			w.Header().Add("Authorization", fmt.Sprintf("Bearer %s", auth))
+			w.Header().Add("Auth-Token", auth)
 			// use 404 to indicate that they're done
 			w.WriteHeader(http.StatusNotFound)
 
@@ -202,42 +282,33 @@ func getClip(w http.ResponseWriter, req *http.Request) {
 	}
 
 	// send a new file
-	fileName, episode := randomClip(claims.Difficulty)
-	episode = NewHope
+	fileName, episode := q.randomClip(claims.Difficulty)
 	claims.Correct = string(episode)
 
 	// mint a new token
-	auth, err = mintToken(claims)
+	auth, err = q.mintToken(claims)
 	if err != nil {
 		log.Printf("token creation error: %s", err)
+		http.Error(w, "could not issue token", http.StatusInternalServerError)
+		return
 	}
 
-	w.Header().Add("Authorization", fmt.Sprintf("Bearer %s", auth))
+	w.Header().Add("Auth-Token", auth)
 
 	// serve the file
-	filePath := filepath.Join(ClipDir, fileName) + ".enc"
+	filePath := filepath.Join(q.clipDir, fileName) + ".enc"
 	log.Printf("serving %s", filePath)
 	http.ServeFile(w, req, filePath)
 }
 
-func registerHighscore(w http.ResponseWriter, req *http.Request) {
-	auth := req.Header.Get("Authorization")
+func (q *QuizAPI) RegisterHighscoreEndpoint(w http.ResponseWriter, req *http.Request) {
+	auth := req.Header.Get("Auth-Token")
 
 	if auth == "" {
 		http.Error(w, "you need a token", http.StatusUnauthorized)
 	}
 
-	tokenSplit := strings.Split(auth, "Bearer ")
-
-	if len(tokenSplit) != 2 {
-		log.Printf("invalid bearer token: no data? %v", tokenSplit)
-		http.Error(w, "invalid auth token", http.StatusUnauthorized)
-		return
-	}
-
-	auth = tokenSplit[1]
-
-	claims, err := parseFromJwt(auth)
+	claims, err := q.parseFromJwt(auth)
 
 	if err != nil {
 		log.Printf("failed to validate token: %v", err)
@@ -245,13 +316,13 @@ func registerHighscore(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if burnedHighscoreIds.Contains(claims.Id) {
+	if q.burnedHighscoreIds.TestString(claims.Id) {
 		log.Printf("attempted to register with burned token")
 		http.Error(w, "invalid token", http.StatusUnauthorized)
 		return
 	}
 
-	burnedHighscoreIds.Insert(claims.Id)
+	q.burnedHighscoreIds.AddString(claims.Id)
 
 	name := req.URL.Query().Get("name")
 
@@ -260,18 +331,20 @@ func registerHighscore(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, "that's not a valid name", http.StatusBadRequest)
 		return
 	}
-
-	err = DataStore.RegisterScore(claims.Id, name, claims.Difficulty, claims.CurrentScore)
+	log.Printf("SCORE FROM CLAIM: %d", claims.CurrentScore)
+	err = q.dataStore.RegisterScore(claims.Id, name, claims.Difficulty, claims.CurrentScore)
 
 	if err != nil {
 		log.Printf("failed to register score: %s", err)
-		http.Error(w, "Failed to register score", http.StatusInternalServerError)
+		http.Error(w, "failed to register score", http.StatusInternalServerError)
 		return
 	}
+	w.Header().Add("Expires", time.Now().Add(time.Minute).Format(http.TimeFormat))
+	w.WriteHeader(http.StatusCreated)
 }
 
-func GetHighScores(w http.ResponseWriter, req *http.Request) {
-	highScores, err := DataStore.GetHighScores()
+func (q *QuizAPI) GetHighScoresEndpoint(w http.ResponseWriter, req *http.Request) {
+	highScores, err := q.dataStore.GetHighScores()
 	if err != nil {
 		log.Printf("failed to get high scores: %s", err)
 		http.Error(w, "failed to get high scores!", http.StatusInternalServerError)
@@ -287,6 +360,5 @@ func GetHighScores(w http.ResponseWriter, req *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 
-	// todo: caching!
 	w.Write(bytes)
 }

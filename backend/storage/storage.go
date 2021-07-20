@@ -1,6 +1,7 @@
-package main
+package storage
 
 import (
+	"backend/types"
 	"database/sql"
 	"fmt"
 	"log"
@@ -21,7 +22,7 @@ type DifficultyHighScores struct {
 }
 
 type HighScores struct {
-	HighScores map[string]DifficultyHighScores `json:"highScores"`
+	HighScores map[string]DifficultyHighScores `json:"highscores"`
 }
 
 type Store struct {
@@ -91,7 +92,7 @@ func (s *Store) CreateDatabase() {
 
 }
 
-func (s *Store) RegisterScore(id, name string, difficulty Difficulty, score int) error {
+func (s *Store) RegisterScore(id, name string, difficulty types.Difficulty, score int) error {
 	s.Lock.Lock()
 	defer s.Lock.Unlock()
 
@@ -133,7 +134,7 @@ func (s *Store) QueryForHighscores() (HighScores, error) {
 	allScores := HighScores{}
 	allScores.HighScores = make(map[string]DifficultyHighScores, 4)
 
-	for _, difficulty := range []Difficulty{Easy, Medium, Hard, Legend} {
+	for _, difficulty := range []types.Difficulty{types.Easy, types.Medium, types.Hard, types.Legend} {
 		diffScores := DifficultyHighScores{}
 
 		{

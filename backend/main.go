@@ -1,91 +1,27 @@
 package main
 
 import (
-	"crypto/rand"
+	"backend/api"
+	"backend/types"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
-	pseudoRand "math/rand"
 	"net/http"
 	"os"
 	"path"
-	"time"
-
-	"backend/trie"
 
 	"github.com/gorilla/handlers"
-	"github.com/gorilla/mux"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/rs/cors"
 )
 
-const SIGNATURE_LENGTH = 32
-
-// set-once globals
-var signatureKey []byte
-var encryptionKey [32]byte
-
-var burnedIds trie.SafeTrie
-var burnedHighscoreIds trie.SafeTrie
-var burnedJtis trie.SafeTrie
-
-type RandomManifest struct {
-	lookup map[string]Episode
-	keys   []string
-}
-
-var Manifests map[Difficulty]RandomManifest
-
-var ClipDir string
-
-var DataStore Store
-
-// ////////////////////////////////////////
-type Difficulty string
-
-const (
-	Easy   Difficulty = "easy"
-	Medium Difficulty = "medium"
-	Hard   Difficulty = "hard"
-	Legend Difficulty = "legend"
-)
-
-type Episode string
-
-var (
-	PhantomMenace Episode = "phantom-menace"
-	AttackClones  Episode = "attack-clones"
-	RevengeSith   Episode = "revenge-sith"
-	NewHope       Episode = "new-hope"
-	Empire        Episode = "empire"
-	Rotj          Episode = "rotj"
-)
-
-type Manifest struct {
-	PhantomMenace []string `json:"phantom-menace"`
-	AttackClones  []string `json:"attack-clones"`
-	RevengeSith   []string `json:"revenge-sith"`
-	NewHope       []string `json:"new-hope"`
-	Empire        []string `json:"empire"`
-	Rotj          []string `json:"rotj"`
-}
-
-func (m *Manifest) TotalSize() int {
-	return len(m.PhantomMenace) + len(m.AttackClones) + len(m.RevengeSith) + len(m.NewHope) + len(m.Empire) + len(m.Rotj)
-}
-
-func LoadManifests() {
-	manifestPath := os.Getenv("MANIFEST_FILE_LOCATION")
-	if manifestPath == "" {
-		manifestPath = "."
-	}
-
+func LoadManifests(manifestPath string) map[types.Difficulty]types.RandomManifest {
 	log.Printf("Manifest Dir: %s", manifestPath)
 
-	Manifests = make(map[Difficulty]RandomManifest, 6)
+	manifests := make(map[types.Difficulty]types.RandomManifest, 6)
 
-	for _, difficulty := range []Difficulty{Easy, Medium, Hard, Legend} {
+	for _, difficulty := range []types.Difficulty{types.Easy, types.Medium, types.Hard, types.Legend} {
 		fullPath := path.Join(manifestPath, fmt.Sprintf("%s.json", string(difficulty)))
 		jsonFile, err := os.Open(fullPath)
 		if err != nil {
@@ -98,103 +34,95 @@ func LoadManifests() {
 			log.Panicf("failed to read '%s': %s", fullPath, err)
 		}
 
-		var manifest Manifest
+		var manifest types.Manifest
 		err = json.Unmarshal(bytes, &manifest)
 
 		if err != nil {
 			log.Panicf("failed to parse '%s': %s", fullPath, err)
 		}
 
-		var rm RandomManifest
+		var rm types.RandomManifest
 		totalSize := manifest.TotalSize()
 
-		rm.lookup = make(map[string]Episode, totalSize)
-		rm.keys = make([]string, totalSize)
+		rm.Lookup = make(map[string]types.Episode, totalSize)
+		rm.Keys = make([]string, totalSize)
 
 		total := 0
 		for i := range manifest.PhantomMenace {
-			rm.lookup[manifest.PhantomMenace[i]] = PhantomMenace
-			rm.keys[total] = manifest.PhantomMenace[i]
+			rm.Lookup[manifest.PhantomMenace[i]] = types.PhantomMenace
+			rm.Keys[total] = manifest.PhantomMenace[i]
 			total++
 		}
 
 		for i := range manifest.AttackClones {
-			rm.lookup[manifest.AttackClones[i]] = AttackClones
-			rm.keys[total] = manifest.AttackClones[i]
+			rm.Lookup[manifest.AttackClones[i]] = types.AttackClones
+			rm.Keys[total] = manifest.AttackClones[i]
 			total++
 		}
 
 		for i := range manifest.RevengeSith {
-			rm.lookup[manifest.RevengeSith[i]] = RevengeSith
-			rm.keys[total] = manifest.RevengeSith[i]
+			rm.Lookup[manifest.RevengeSith[i]] = types.RevengeSith
+			rm.Keys[total] = manifest.RevengeSith[i]
 			total++
 		}
 
 		for i := range manifest.NewHope {
-			rm.lookup[manifest.NewHope[i]] = NewHope
-			rm.keys[total] = manifest.NewHope[i]
+			rm.Lookup[manifest.NewHope[i]] = types.NewHope
+			rm.Keys[total] = manifest.NewHope[i]
 			total++
 		}
 
 		for i := range manifest.Empire {
-			rm.lookup[manifest.Empire[i]] = Empire
-			rm.keys[total] = manifest.Empire[i]
+			rm.Lookup[manifest.Empire[i]] = types.Empire
+			rm.Keys[total] = manifest.Empire[i]
 			total++
 		}
 
 		for i := range manifest.Rotj {
-			rm.lookup[manifest.Rotj[i]] = Rotj
-			rm.keys[total] = manifest.Rotj[i]
+			rm.Lookup[manifest.Rotj[i]] = types.Rotj
+			rm.Keys[total] = manifest.Rotj[i]
 			total++
 		}
 
-		if total != totalSize || len(rm.keys) != len(rm.lookup) {
+		if total != totalSize || len(rm.Keys) != len(rm.Lookup) {
 			log.Panic("AAAHHHH")
 		}
 
-		Manifests[difficulty] = rm
+		manifests[difficulty] = rm
 	}
+
+	return manifests
 }
 
 const PREFIX = "/clipquiz/v1/"
 
 func main() {
 	log.Print("Hello There")
-	pseudoRand.Seed(time.Now().UTC().UnixNano())
-	signatureKey = make([]byte, SIGNATURE_LENGTH)
 
-	temp := make([]byte, 32)
+	// READ CONFIGURATION
+	manifestPath := os.Getenv("MANIFEST_FILE_LOCATION")
+	if manifestPath == "" {
+		manifestPath = "."
+	}
 
-	rand.Read(signatureKey)
-	rand.Read(temp)
+	clipDir := os.Getenv("CLIP_DIRECTORY")
 
-	copy(encryptionKey[:], temp)
-
-	// get the manifest files
-	LoadManifests()
-
-	// get the clip directory
-	ClipDir = os.Getenv("CLIP_DIRECTORY")
-	log.Printf("Clip Dir: %s", ClipDir)
-	mux := mux.NewRouter()
-
-	mux.HandleFunc("/clipquiz/v1/requestclip", getClip).Methods(http.MethodPost).Headers()
-	mux.HandleFunc("/clipquiz/v1/registerHighscore", registerHighscore).Methods(http.MethodPost)
-	mux.HandleFunc("/clipquiz/v1/highScores", GetHighScores).Methods(http.MethodGet)
-
-	// init db
 	dbPath := os.Getenv("DATABASE_FILE")
 	if dbPath == "" {
 		dbPath = "highscores.db"
 	}
 
-	log.Printf("DB Store: %s", dbPath)
-	DataStore.Init(dbPath)
-
 	frontendOrigin := os.Getenv("BACKEND_FRONTEND_ALLOWED_ORIGIN")
 	if frontendOrigin == "" {
 		frontendOrigin = "http://localhost:8000"
 	}
+
+	fmt.Printf("Configuration:\n\tManifest Path = '%s'\n\tClip Dir = '%s'\n\tDB Path = '%s'\n\tFrontend Origin = '%s'\n", manifestPath, clipDir, dbPath, frontendOrigin)
+
+	// get the manifest files
+	manifests := LoadManifests(manifestPath)
+
+	quizApi := api.NewQuizApi(manifests, dbPath, clipDir)
 
 	var debug = false
 	if os.Getenv("DEBUG") != "" {
@@ -203,19 +131,20 @@ func main() {
 
 	// init middleware
 	cors := cors.New(cors.Options{
-		AllowedOrigins:   []string{frontendOrigin},
-		AllowCredentials: true,
-		Debug:            debug,
+		AllowedHeaders: []string{"Auth-Token"},
+		ExposedHeaders: []string{"Auth-Token"},
+		AllowedOrigins: []string{frontendOrigin, "http://192.168.1.29:8000"},
+		Debug:          debug,
 	})
-	handler := cors.Handler(mux)
+	handler := cors.Handler(quizApi)
 	handler = handlers.CombinedLoggingHandler(os.Stdout, handler)
 
-	log.Print("Listening on port 3000...")
-	http.ListenAndServe(":3000", mux)
+	log.Print("Listening on port 3123...")
 
-	s := http.Server{
-		Addr:    ":3000",
-		Handler: handler,
+	s := &http.Server{
+		Addr:           ":3123",
+		Handler:        handler,
+		MaxHeaderBytes: 2048,
 	}
 
 	s.ListenAndServe()
