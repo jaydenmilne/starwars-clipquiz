@@ -13,7 +13,7 @@ const MANIFEST_IV = aesjs.utils.hex.toBytes("d17a4a54ac9bd69f1bcc7bce1223a3df");
 const MEDIA_KEY = aesjs.utils.hex.toBytes("f4129dbc91d36973ac24f57a1682d3b7327895ce71429f33ff2b153207d55cc6");
 const MEDIA_IV = aesjs.utils.hex.toBytes("bde166cd43d5ecb0fb7930f92e54bac8");
 
-let backendUrl = location.hostname.includes("localhost") || location.hostname.includes("192") ? `http://192.168.1.29:3000/clipquiz/v1` : `https://api.starwars.jayd.ml/clipquiz/v1`;
+let backendUrl = location.hostname.includes("localhost") || location.hostname.includes("192") ? `http://192.168.1.29:3123/clipquiz/v1` : `https://apistarwars.jayd.ml/clipquiz/v1`;
 
 export async function getManifest(difficulty) {
     let manifestBytes;
