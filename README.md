@@ -1,3 +1,3 @@
 # starwars-clipquiz
 
-Backend for https://starwars.jayd.ml
+Source for https://starwars.jayd.ml
