@@ -52,9 +52,9 @@ var TotalCalls int = 0
 func NewQuizApi(manifests map[types.Difficulty]types.RandomManifest, dbPath, clipDir string) *QuizAPI {
 	api := QuizAPI{}
 
-	api.burnedIds = bloom.NewWithEstimates(10_000_000, 0.000001)
-	api.burnedHighscoreIds = bloom.NewWithEstimates(10_000_000, 0.000001)
-	api.burnedJtis = bloom.NewWithEstimates(10_000_000, 0.000001)
+	api.burnedIds = bloom.NewWithEstimates(10_000_000, 0.00000001)
+	api.burnedHighscoreIds = bloom.NewWithEstimates(10_000_000, 0.00000001)
+	api.burnedJtis = bloom.NewWithEstimates(10_000_000, 0.00000001)
 
 	nBig, err := rand.Int(rand.Reader, big.NewInt(27))
 
