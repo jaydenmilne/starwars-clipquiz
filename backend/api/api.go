@@ -88,7 +88,10 @@ func NewQuizApi(manifests map[types.Difficulty]types.RandomManifest, dbPath, cli
 	api.mux.HandleFunc("/clipquiz/v1/highscore", func(w http.ResponseWriter, req *http.Request) {
 		api.GetHighScoresEndpoint(w, req)
 	}).Methods(http.MethodGet)
-
+	api.mux.HandleFunc("/", func(rw http.ResponseWriter, r *http.Request) {
+		rw.Header().Add("Expires", time.Now().Add(time.Minute*15).Format(http.TimeFormat))
+		rw.Write([]byte("All Systems Operational Captain"))
+	})
 	return &api
 }
 
@@ -306,6 +309,7 @@ func (q *QuizAPI) RegisterHighscoreEndpoint(w http.ResponseWriter, req *http.Req
 
 	if auth == "" {
 		http.Error(w, "you need a token", http.StatusUnauthorized)
+		return
 	}
 
 	claims, err := q.parseFromJwt(auth)

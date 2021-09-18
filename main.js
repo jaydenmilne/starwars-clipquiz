@@ -141,6 +141,7 @@ async function beginQuiz(difficultyBtnName) {
     BUTTON_DIV.style.display = "none";
     LOADING_SPINNER.style.display = "inherit";
     score = 0;
+    updateProgress();
     selectedDifficulty = difficultyBtnName.split('-')[0];
 
     let clip = await getFirstClip(selectedDifficulty);
@@ -212,7 +213,12 @@ function showResults(correct) {
         "¯\\_(ツ)_/¯", 
         "That's no moon...", 
         "You should've had a bad feeling about that", 
-        "Clouded, your future is"
+        "Clouded, your future is",
+        "You didn't see through the lies of the Jedi",
+        "Blast it!",
+        "'LIAR' 〰 Anakin Skywalker",
+        "You choked on your ambitions",
+        "It was a trap"
     ];
 
     const [quip] = getRandom(quips, 1);
