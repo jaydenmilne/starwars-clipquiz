@@ -47,6 +47,8 @@ type QuizAPI struct {
 	mux *mux.Router
 }
 
+var TotalCalls int = 0
+
 func NewQuizApi(manifests map[types.Difficulty]types.RandomManifest, dbPath, clipDir string) *QuizAPI {
 	api := QuizAPI{}
 
@@ -80,17 +82,21 @@ func NewQuizApi(manifests map[types.Difficulty]types.RandomManifest, dbPath, cli
 	api.mux = mux.NewRouter()
 
 	api.mux.HandleFunc("/clipquiz/v1/clip", func(w http.ResponseWriter, req *http.Request) {
+		TotalCalls += 1
 		api.GetClipEndpoint(w, req)
 	}).Methods(http.MethodPost)
 	api.mux.HandleFunc("/clipquiz/v1/highscore", func(w http.ResponseWriter, req *http.Request) {
+		TotalCalls += 1
 		api.RegisterHighscoreEndpoint(w, req)
 	}).Methods(http.MethodPost)
 	api.mux.HandleFunc("/clipquiz/v1/highscore", func(w http.ResponseWriter, req *http.Request) {
+		TotalCalls += 1
 		api.GetHighScoresEndpoint(w, req)
 	}).Methods(http.MethodGet)
 	api.mux.HandleFunc("/", func(rw http.ResponseWriter, r *http.Request) {
 		rw.Header().Add("Expires", time.Now().Add(time.Minute*15).Format(http.TimeFormat))
-		rw.Write([]byte("All Systems Operational Captain"))
+		rw.Write([]byte("All Systems Operational Captain\r\n"))
+		rw.Write([]byte(fmt.Sprintf("total calls: %d", TotalCalls)))
 	})
 	return &api
 }
@@ -300,7 +306,6 @@ func (q *QuizAPI) GetClipEndpoint(w http.ResponseWriter, req *http.Request) {
 
 	// serve the file
 	filePath := filepath.Join(q.clipDir, fileName) + ".enc"
-	log.Printf("serving %s", filePath)
 	http.ServeFile(w, req, filePath)
 }
 
@@ -335,7 +340,7 @@ func (q *QuizAPI) RegisterHighscoreEndpoint(w http.ResponseWriter, req *http.Req
 		http.Error(w, "that's not a valid name", http.StatusBadRequest)
 		return
 	}
-	log.Printf("SCORE FROM CLAIM: %d", claims.CurrentScore)
+
 	err = q.dataStore.RegisterScore(claims.Id, name, claims.Difficulty, claims.CurrentScore)
 
 	if err != nil {
@@ -343,7 +348,6 @@ func (q *QuizAPI) RegisterHighscoreEndpoint(w http.ResponseWriter, req *http.Req
 		http.Error(w, "failed to register score", http.StatusInternalServerError)
 		return
 	}
-	w.Header().Add("Expires", time.Now().Add(time.Minute).Format(http.TimeFormat))
 	w.WriteHeader(http.StatusCreated)
 }
 
@@ -363,6 +367,6 @@ func (q *QuizAPI) GetHighScoresEndpoint(w http.ResponseWriter, req *http.Request
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-
+	w.Header().Add("Expires", time.Now().Add(time.Second*24).Format(http.TimeFormat))
 	w.Write(bytes)
 }
